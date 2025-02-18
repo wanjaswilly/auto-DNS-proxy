@@ -6,138 +6,138 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#define GOOGLE_DNS "8.8.8.8"  // Google Public DNS
-#define GOOGLE_DNS_PORT 53    // DNS Port
+#define GOOGLE_PUBLIC_DNS_IP "8.8.8.8"  // Google Public DNS IP
+#define GOOGLE_DNS_PORT 53              // Google DNS Port
 
-// Function to forward DNS query to Google DNS
-void forward_to_google(unsigned char *query, int query_len, int client_socket, struct sockaddr_in client_addr) {
-    int sock;
-    struct sockaddr_in google_dns;
-    socklen_t addr_len = sizeof(client_addr);
-    unsigned char buffer[512];  // DNS response buffer
+// Function to forward the DNS query to Google DNS server and get the response
+void forward_dns_query_to_google(unsigned char *dns_query, int dns_query_length, int client_socket_fd, struct sockaddr_in client_address) {
+    int google_dns_socket_fd;
+    struct sockaddr_in google_dns_server_address;
+    socklen_t client_address_length = sizeof(client_address);
+    unsigned char dns_response_buffer[512];  // Buffer to store DNS response
 
-    // Create a UDP socket
-    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("Socket creation failed");
+    // Create a UDP socket to communicate with Google DNS
+    if ((google_dns_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Error creating socket for communication with Google DNS");
         return;
     }
 
-    // Configure Google DNS server details
-    memset(&google_dns, 0, sizeof(google_dns));
-    google_dns.sin_family = AF_INET;
-    google_dns.sin_port = htons(GOOGLE_DNS_PORT);
-    google_dns.sin_addr.s_addr = inet_addr(GOOGLE_DNS);
+    // Set up the Google DNS server details (IP and Port)
+    memset(&google_dns_server_address, 0, sizeof(google_dns_server_address));
+    google_dns_server_address.sin_family = AF_INET;
+    google_dns_server_address.sin_port = htons(GOOGLE_DNS_PORT);
+    google_dns_server_address.sin_addr.s_addr = inet_addr(GOOGLE_PUBLIC_DNS_IP);
 
-    // Send the query to Google DNS
-    sendto(sock, query, query_len, 0, (struct sockaddr*)&google_dns, sizeof(google_dns));
+    // Send the DNS query to Google DNS server
+    sendto(google_dns_socket_fd, dns_query, dns_query_length, 0, (struct sockaddr*)&google_dns_server_address, sizeof(google_dns_server_address));
 
-    // Receive response from Google DNS
-    int response_len = recvfrom(sock, buffer, sizeof(buffer), 0, NULL, NULL);
-    if (response_len < 0) {
-        perror("No response from Google DNS");
-        close(sock);
+    // Receive the DNS response from Google DNS
+    int dns_response_length = recvfrom(google_dns_socket_fd, dns_response_buffer, sizeof(dns_response_buffer), 0, NULL, NULL);
+    if (dns_response_length < 0) {
+        perror("Error receiving response from Google DNS");
+        close(google_dns_socket_fd);
         return;
     }
 
-    // Send the response back to the original client
-    sendto(client_socket, buffer, response_len, 0, (struct sockaddr*)&client_addr, addr_len);
+    // Forward the DNS response back to the original client
+    sendto(client_socket_fd, dns_response_buffer, dns_response_length, 0, (struct sockaddr*)&client_address, client_address_length);
 
-    // Close the socket
-    close(sock);
+    // Close the socket after the communication
+    close(google_dns_socket_fd);
 }
 
-// Example function to check if a domain is in the local intranet database
-int is_intranet_domain(const char *domain) {
-    // TODO: Replace with actual database lookup
-    if (strcmp(domain, "intranet.local") == 0) {
-        return 1;
+// Function to check if the domain is part of the local intranet
+int check_if_domain_is_in_intranet(const char *domain_name) {
+    // TODO: Replace with actual database lookup for intranet domain
+    if (strcmp(domain_name, "intranet.local") == 0) {
+        return 1;  // Intranet domain found
     }
-    return 0;
+    return 0;  // Domain not found in intranet
 }
 
-// Function to extract domain name from DNS query
-void extract_domain_name(unsigned char *query, char *domain) {
-    int i = 12;  // DNS header is 12 bytes long
+// Function to extract the domain name from the DNS query packet
+void extract_domain_name_from_dns_query(unsigned char *dns_query, char *domain_name) {
+    int i = 12;  // DNS header is always 12 bytes long
     int j = 0;
 
-    while (query[i] != 0) {
-        int len = query[i];  // Length of the next domain label
+    // Loop through the DNS query to extract each label of the domain
+    while (dns_query[i] != 0) {
+        int label_length = dns_query[i];  // Length of the next domain label
         i++;
 
-        // Copy the domain label to the domain buffer
-        for (int k = 0; k < len; k++) {
-            domain[j++] = query[i++];
+        // Copy the domain label to the domain_name buffer
+        for (int k = 0; k < label_length; k++) {
+            domain_name[j++] = dns_query[i++];
         }
 
-        // Add a dot between labels
-        domain[j++] = '.';
+        // Add a dot between domain labels
+        domain_name[j++] = '.';
     }
-    domain[j - 1] = '\0';  // Replace last dot with null terminator
+    domain_name[j - 1] = '\0';  // Replace the last dot with a null terminator
 }
 
-
-// Function to handle incoming DNS requests
-void handle_dns_query(int sockfd) {
-    unsigned char buffer[512];
-    struct sockaddr_in client_addr;
-    socklen_t addr_len = sizeof(client_addr);
+// Function to handle incoming DNS queries from clients
+void handle_dns_queries_on_socket(int server_socket_fd) {
+    unsigned char dns_query_buffer[512];
+    struct sockaddr_in client_address;
+    socklen_t client_address_length = sizeof(client_address);
 
     while (1) {
-        // Receive DNS request
-        int len = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)&client_addr, &addr_len);
-        if (len < 0) {
-            perror("Error receiving data");
+        // Receive DNS request from client
+        int dns_query_length = recvfrom(server_socket_fd, dns_query_buffer, sizeof(dns_query_buffer), 0, (struct sockaddr*)&client_address, &client_address_length);
+        if (dns_query_length < 0) {
+            perror("Error receiving DNS query from client");
             continue;
         }
 
-        // Extract the requested domain name
-        char domain[256] = {0};
-        extract_domain_name(buffer, domain);
-        // TODO: Parse the actual domain name from the query packet
-        // strcpy(domain, "example.com");  // Placeholder
+        // Extract the requested domain name from the DNS query
+        char extracted_domain_name[256] = {0};
+        extract_domain_name_from_dns_query(dns_query_buffer, extracted_domain_name);
 
-        printf("Received query for domain: %s\n", domain);
+        // Log the domain name for debugging
+        printf("Received DNS query for domain: %s\n", extracted_domain_name);
 
-        // Check if the domain is in the intranet
-        if (is_intranet_domain(domain)) {
-            printf("Domain is in intranet. Responding with local IP...\n");
-            // TODO: Return the local IP from database
+        // Check if the domain is part of the intranet
+        if (check_if_domain_is_in_intranet(extracted_domain_name)) {
+            printf("Domain is found in the intranet. Responding with local IP...\n");
+            // TODO: Send the local intranet IP response here (from database)
         } else {
-            printf("Domain not found in intranet. Forwarding to Google DNS...\n");
-            forward_to_google(buffer, len, sockfd, client_addr);
+            printf("Domain not found in the intranet. Forwarding the query to Google DNS...\n");
+            forward_dns_query_to_google(dns_query_buffer, dns_query_length, server_socket_fd, client_address);
         }
     }
 }
 
-// Main function to set up the DNS server
+// Main function to initialize and run the DNS server
 int main() {
-    int sockfd;
-    struct sockaddr_in server_addr;
+    int dns_server_socket_fd;
+    struct sockaddr_in dns_server_address;
 
-    // Create UDP socket
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("Socket creation failed");
+    // Create a UDP socket for the DNS server
+    if ((dns_server_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Error creating DNS server socket");
         exit(EXIT_FAILURE);
     }
 
-    // Configure server settings
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(5354);  // Bind to DNS port
+    // Set up the DNS server address (bind to port 5354)
+    memset(&dns_server_address, 0, sizeof(dns_server_address));
+    dns_server_address.sin_family = AF_INET;
+    dns_server_address.sin_addr.s_addr = INADDR_ANY;  // Listen on all available interfaces
+    dns_server_address.sin_port = htons(5354);  // DNS server listening on port 5354
 
-    // Bind the socket
-    if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        perror("Bind failed");
+    // Bind the socket to the DNS server address
+    if (bind(dns_server_socket_fd, (struct sockaddr*)&dns_server_address, sizeof(dns_server_address)) < 0) {
+        perror("Error binding DNS server socket");
         exit(EXIT_FAILURE);
     }
 
+    // Log that the DNS server is up and running
     printf("DNS Server is running on port 5354...\n");
 
-    // Handle DNS queries
-    handle_dns_query(sockfd);
+    // Start handling DNS queries
+    handle_dns_queries_on_socket(dns_server_socket_fd);
 
-    // Close socket (never reached)
-    close(sockfd);
+    // Close the server socket (never reached in this example)
+    close(dns_server_socket_fd);
     return 0;
 }
