@@ -1,29 +1,26 @@
+import subprocess
 from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from models import db, User, Resources
+from utilities import utilities
+
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///admin.db'
-app.config['SECRET_KEY'] = 'your_secret_key'
-db = SQLAlchemy()
 
-# User model
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    
-class Resources(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    domain = db.Column(db.String(100), unique=True, nullable=False)
-    ip = db.Column(db.String(50), nullable=False)
+# app config
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# initialize app
+db.init_app(app)
 
 # Routes
 @app.route('/')
 def home():
     if 'user' in session:
         return render_template('dashboard.html')
-    return render_template('base.html')
+    return render_template('login.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -31,10 +28,11 @@ def login():
         username = request.form['username']
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
+        if user and user.check_password(password):
             session['user'] = username
             return redirect(url_for('home'))
-        return 'Invalid credentials'
+        return render_template('login.html', error = 'Invalid credentials')
+    
     return render_template('login.html')
 
 @app.route('/logout')
@@ -45,7 +43,7 @@ def logout():
 @app.route('/dashboard')
 def dashboard():
     if 'user' in session:
-        return render_template('dashboard.html')
+        return render_template('dashboard.html', resources = Resources.query.all())
     return redirect(url_for('login'))
 
 @app.route('/resources')
@@ -54,14 +52,23 @@ def resources():
     
     return render_template('resources.html')
 
-# get the network resources
-def get_network_resources():
-    return Resources.query    
+@app.route('/register')
+def register():
+    username = request.form['username']
+    password = request.form['password']
+    """Registers a new user with a hashed password."""
+    if User.query.filter_by(username=username).first():
+        return {"error": "Username already exists!"}
+
+    hashed_password = generate_password_hash(password)
+
+    new_user = User(username=username, password_hash=hashed_password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return {"message": "User registered successfully!"}
+ 
 
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.init_app(app)
-        db.create_all()
-
-        app.run(debug=True)
+    app.run(debug=True)
