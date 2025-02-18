@@ -3,138 +3,141 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
-#define DNS_SERVER "8.8.8.8"
-#define DNS_PORT 53
-#define BUFFER_SIZE 512
+#define GOOGLE_DNS "8.8.8.8"  // Google Public DNS
+#define GOOGLE_DNS_PORT 53    // DNS Port
 
-// DNS Header structure
-struct DNS_HEADER {
-    unsigned short id;       // Identification number
-    unsigned char rd :1;     // Recursion Desired
-    unsigned char tc :1;     // Truncated message
-    unsigned char aa :1;     // Authoritative Answer
-    unsigned char opcode :4; // Purpose of message
-    unsigned char qr :1;     // Query/Response Flag
-    unsigned char rcode :4;  // Response code
-    unsigned char cd :1;     // Checking Disabled
-    unsigned char ad :1;     // Authenticated Data
-    unsigned char z :1;      // Reserved
-    unsigned char ra :1;     // Recursion Available
-    unsigned short q_count;  // Number of question entries
-    unsigned short ans_count;// Number of answer entries
-    unsigned short auth_count; // Number of authority records
-    unsigned short add_count;  // Number of additional records
-};
+// Function to forward DNS query to Google DNS
+void forward_to_google(unsigned char *query, int query_len, int client_socket, struct sockaddr_in client_addr) {
+    int sock;
+    struct sockaddr_in google_dns;
+    socklen_t addr_len = sizeof(client_addr);
+    unsigned char buffer[512];  // DNS response buffer
 
-// Query structure
-struct QUESTION {
-    unsigned short qtype;
-    unsigned short qclass;
-};
-
-// Convert hostname into DNS format (www.google.com -> 3www6google3com0)
-void format_hostname(unsigned char *dns, unsigned char *hostname) {
-    int lock = 0, i;
-    strcat((char*)hostname, ".");
-    for (i = 0; i < strlen((char*)hostname); i++) {
-        if (hostname[i] == '.') {
-            *dns++ = i - lock;
-            for (; lock < i; lock++) {
-                *dns++ = hostname[lock];
-            }
-            lock = i + 1;
-        }
+    // Create a UDP socket
+    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Socket creation failed");
+        return;
     }
-    *dns++ = '\0';
+
+    // Configure Google DNS server details
+    memset(&google_dns, 0, sizeof(google_dns));
+    google_dns.sin_family = AF_INET;
+    google_dns.sin_port = htons(GOOGLE_DNS_PORT);
+    google_dns.sin_addr.s_addr = inet_addr(GOOGLE_DNS);
+
+    // Send the query to Google DNS
+    sendto(sock, query, query_len, 0, (struct sockaddr*)&google_dns, sizeof(google_dns));
+
+    // Receive response from Google DNS
+    int response_len = recvfrom(sock, buffer, sizeof(buffer), 0, NULL, NULL);
+    if (response_len < 0) {
+        perror("No response from Google DNS");
+        close(sock);
+        return;
+    }
+
+    // Send the response back to the original client
+    sendto(client_socket, buffer, response_len, 0, (struct sockaddr*)&client_addr, addr_len);
+
+    // Close the socket
+    close(sock);
 }
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        printf("Usage: %s <domain>\n", argv[0]);
+// Example function to check if a domain is in the local intranet database
+int is_intranet_domain(const char *domain) {
+    // TODO: Replace with actual database lookup
+    if (strcmp(domain, "intranet.local") == 0) {
         return 1;
     }
+    return 0;
+}
 
-    unsigned char buffer[BUFFER_SIZE], *qname;
-    struct sockaddr_in dest;
-    int sockfd, i;
-    struct DNS_HEADER *dns = NULL;
-    struct QUESTION *qinfo = NULL;
+// Function to extract domain name from DNS query
+void extract_domain_name(unsigned char *query, char *domain) {
+    int i = 12;  // DNS header is 12 bytes long
+    int j = 0;
 
-    sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (sockfd < 0) {
-        perror("Socket error");
-        return 1;
+    while (query[i] != 0) {
+        int len = query[i];  // Length of the next domain label
+        i++;
+
+        // Copy the domain label to the domain buffer
+        for (int k = 0; k < len; k++) {
+            domain[j++] = query[i++];
+        }
+
+        // Add a dot between labels
+        domain[j++] = '.';
     }
+    domain[j - 1] = '\0';  // Replace last dot with null terminator
+}
 
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(DNS_PORT);
-    dest.sin_addr.s_addr = inet_addr(DNS_SERVER);
 
-    dns = (struct DNS_HEADER *)&buffer;
-    dns->id = (unsigned short) htons(getpid());
-    dns->qr = 0;
-    dns->opcode = 0;
-    dns->aa = 0;
-    dns->tc = 0;
-    dns->rd = 1; // Recursion Desired
-    dns->ra = 0;
-    dns->z = 0;
-    dns->ad = 0;
-    dns->cd = 0;
-    dns->rcode = 0;
-    dns->q_count = htons(1);
-    dns->ans_count = 0;
-    dns->auth_count = 0;
-    dns->add_count = 0;
+// Function to handle incoming DNS requests
+void handle_dns_query(int sockfd) {
+    unsigned char buffer[512];
+    struct sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
 
-    qname = (unsigned char*)&buffer[sizeof(struct DNS_HEADER)];
-    format_hostname(qname, (unsigned char*)argv[1]);
+    while (1) {
+        // Receive DNS request
+        int len = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)&client_addr, &addr_len);
+        if (len < 0) {
+            perror("Error receiving data");
+            continue;
+        }
 
-    qinfo = (struct QUESTION*)&buffer[sizeof(struct DNS_HEADER) + (strlen((const char*)qname) + 1)];
-    qinfo->qtype = htons(1);
-    qinfo->qclass = htons(1);
+        // Extract the requested domain name
+        char domain[256] = {0};
+        extract_domain_name(buffer, domain);
+        // TODO: Parse the actual domain name from the query packet
+        // strcpy(domain, "example.com");  // Placeholder
 
-    if (sendto(sockfd, buffer, sizeof(struct DNS_HEADER) + (strlen((const char*)qname) + 1) + sizeof(struct QUESTION), 0,
-               (struct sockaddr*)&dest, sizeof(dest)) < 0) {
-        perror("Send failed");
-        return 1;
-    }
+        printf("Received query for domain: %s\n", domain);
 
-    struct sockaddr_in response_addr;
-    socklen_t len = sizeof(response_addr);
-    if (recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&response_addr, &len) < 0) {
-        perror("Receive failed");
-        return 1;
-    }
-
-    dns = (struct DNS_HEADER*) buffer;
-    unsigned char *reader = &buffer[sizeof(struct DNS_HEADER) + (strlen((const char*)qname) + 1) + sizeof(struct QUESTION)];
-
-    if (ntohs(dns->ans_count) == 0) {
-        printf("No answers received.\n");
-        return 1;
-    }
-
-    printf("\nAnswer Section:\n");
-    for (i = 0; i < ntohs(dns->ans_count); i++) {
-        reader += 2; // Name pointer
-        unsigned short type = ntohs(*(unsigned short*)reader);
-        reader += 2;
-        reader += 2; // Class
-        reader += 4; // TTL
-        unsigned short data_len = ntohs(*(unsigned short*)reader);
-        reader += 2;
-
-        if (type == 1) { // A record
-            printf("IP Address: %d.%d.%d.%d\n", reader[0], reader[1], reader[2], reader[3]);
-            reader += data_len;
+        // Check if the domain is in the intranet
+        if (is_intranet_domain(domain)) {
+            printf("Domain is in intranet. Responding with local IP...\n");
+            // TODO: Return the local IP from database
         } else {
-            reader += data_len;
+            printf("Domain not found in intranet. Forwarding to Google DNS...\n");
+            forward_to_google(buffer, len, sockfd, client_addr);
         }
     }
+}
 
+// Main function to set up the DNS server
+int main() {
+    int sockfd;
+    struct sockaddr_in server_addr;
+
+    // Create UDP socket
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Configure server settings
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(5354);  // Bind to DNS port
+
+    // Bind the socket
+    if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        perror("Bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("DNS Server is running on port 5354...\n");
+
+    // Handle DNS queries
+    handle_dns_query(sockfd);
+
+    // Close socket (never reached)
     close(sockfd);
     return 0;
 }
