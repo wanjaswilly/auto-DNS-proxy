@@ -12,29 +12,37 @@
             <a href="{{url_for('users')}}">
                 <div class="bg-blue-500 text-white p-4 rounded-lg text-center">
                     <h3 class="text-lg font-semibold">Total Users</h3>
-                    <p class="text-2xl font-bold">{{ users_count }}</p>
+                    <p class="text-2xl font-bold">{{ users }}</p>
                 </div>
             </a>
             <!-- Resources Count -->
             <a href="{{url_for('resources')}}">
                 <div class="bg-green-500 text-white p-4 rounded-lg text-center">
                     <h3 class="text-lg font-semibold">Total Resources</h3>
-                    <p class="text-2xl font-bold">{{ resources_count }}</p>
+                    <p class="text-2xl font-bold">{{ resources }}</p>
                 </div>
             </a>
             <a href="{{url_for('logs')}}">
                 <div class="bg-green-500 text-white p-4 rounded-lg text-center">
                     <h3 class="text-lg font-semibold">All Logs</h3>
-                    <p class="text-2xl font-bold">{{ resources_count }}</p>
+                    <p class="text-2xl font-bold">{{ logs }}</p>
                 </div>
             </a>
             <a href="{{url_for('proxy')}}">
                 <div class="bg-green-500 text-white p-4 rounded-lg text-center">
                     <h3 class="text-lg font-semibold">Proxy Settings</h3>
-                    <p class="text-2xl font-bold">{{ resources_count }}</p>
+                    <p class="text-2xl font-bold">{{ proxy }}</p>
                 </div>
             </a>
+            <a href="{{url_for('metrics')}}">
+                <div class="bg-green-500 text-white p-4 rounded-lg text-center">
+                    <h3 class="text-lg font-semibold">App Metrics</h3>
+                    <p class="text-2xl font-bold">{{ metrics }}</p>
+                </div>
+            </a>
+            
         </div>
+
     </div>
 
 </div>

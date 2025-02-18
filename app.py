@@ -2,7 +2,7 @@ import subprocess
 from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Resources, Logs, ProxySettings
+from models import db, User, Resources, Logs, ProxySettings, Metrics
 from utilities import utilities
 
 
@@ -21,10 +21,13 @@ db.init_app(app)
 @app.route('/')
 def home():
     if 'user' in session:
+        return render_template(
+            'dashboard.html', 
+            users=User.query.count(), 
+            resources=Resources.query.count(), 
+            logs=Logs.query.count(),
+            proxy=ProxySettings.query.count())
         
-        users_count = User.query.count()
-        resources_count = Resources.query.count()
-        return render_template('dashboard.html', users_count=users_count, resources_count=resources_count)
     return render_template('login.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -52,8 +55,11 @@ def dashboard():
     return redirect(url_for('login'))
 
 @app.route('/resources')
-def resources():    
-    return render_template('resources.html', resources=Resources.query.all())
+def resources():
+    if 'user' in session:
+        return render_template('resources.html', resources=Resources.query.all())
+    
+    return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -76,16 +82,32 @@ def register():
  
 @app.route('/users')
 def users():
-     return render_template('users.html', users=User.query.all())
+    if 'user' in session:
+        return render_template('users.html', users=User.query.all())
+    
+    return redirect(url_for('login'))
  
 @app.route('/logs')
 def logs():
-    return render_template('logs.html', logs=Logs.query.all())
+    if 'user' in session:
+        return render_template('logs.html', logs=Logs.query.all())
+    
+    return redirect(url_for('login'))
 
 @app.route('/proxy')
 def proxy():
-    return render_template('proxy.html', proxy=ProxySettings.query.all())
+    if 'user' in session:
+        return render_template('proxy.html', proxy=ProxySettings.query.all())
+    
+    return redirect(url_for('login'))
 
+@app.route('/metrics')
+def metrics():
+    if 'user' in session:
+        return render_template('metrics.html', metrics=Metrics.query.all())
+    
+    return redirect(url_for('login'))
+    
 
 if __name__ == '__main__':
     app.run(debug=True)

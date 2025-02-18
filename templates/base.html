@@ -19,10 +19,12 @@
                     <a href="{{url_for('home')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Dashboard</a>
                 </li>
                 <li>
-                    <a href="{{url_for('resources')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Local DNS Queries</a>
+                    <a href="{{url_for('resources')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Local DNS
+                        Queries</a>
                 </li>
                 <li>
-                    <a href="{{url_for('proxy')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Proxy Settings</a>
+                    <a href="{{url_for('proxy')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Proxy
+                        Settings</a>
                 </li>
                 <li>
                     <a href="{{url_for('logs')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Logs</a>
@@ -34,7 +36,13 @@
         </nav>
 
         <div class="mt-auto">
-            <a href="#" class="block px-4 py-2 bg-red-600 rounded-lg text-center hover:bg-red-700">Logout</a>
+            {% if session.get('user') %}
+            <a href="{{url_for('logout')}}"
+                class="block px-4 py-2 bg-red-600 rounded-lg text-center hover:bg-red-700">Logout</a>
+            {% else %}
+            <a href="{{url_for('login')}}"
+                class="block px-4 py-2 bg-red-600 rounded-lg text-center hover:bg-red-700">Login</a>
+            {% endif %}
         </div>
     </div>
 

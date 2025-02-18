@@ -51,4 +51,11 @@ class Logs(db.Model):
     def __repr__(self):
         return f"<Log {self.event_type} - {self.timestamp}>"
 
+class Metrics(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    metric_name = db.Column(db.String(100), nullable=False)  # e.g., "Total Users", "DNS Queries"
+    value = db.Column(db.Float, nullable=False)  # Store metric values
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)  # Time of recording
 
+    def __repr__(self):
+        return f"<Metrics {self.metric_name}: {self.value}>"

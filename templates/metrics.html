@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block page_name %}Site Metrics{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md w-2/3">
+    <div class="p-6 bg-white shadow-md rounded-lg">
+        <h2 class="text-xl font-semibold text-gray-800 my-6">Site Metrics</h2>
+
+        <table class="w-full border-collapse border border-gray-300">
+            <thead>
+                <tr class="bg-gray-200">
+                    <th class="border border-gray-300 px-4 py-2">ID</th>
+                    <th class="border border-gray-300 px-4 py-2">Metric Name</th>
+                    <th class="border border-gray-300 px-4 py-2">Value</th>
+                    <th class="border border-gray-300 px-4 py-2">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="hover:bg-gray-100">
+                    <td class="border border-gray-300 px-4 py-2">{{ metrics.id }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ metrics.metric_name }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ metrics.value }}</td>
+                    <td class="border border-gray-300 px-4 py-2">
+                        <a href="#" class="text-blue-500 hover:underline">View More</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}
