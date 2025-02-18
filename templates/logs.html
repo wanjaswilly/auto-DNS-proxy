@@ -11,17 +11,19 @@
             <thead>
                 <tr class="bg-gray-200">
                     <th class="border border-gray-300 px-4 py-2">#</th>
-                    <th class="border border-gray-300 px-4 py-2">Metric Name</th>
-                    <th class="border border-gray-300 px-4 py-2">Value</th>
+                    <th class="border border-gray-300 px-4 py-2">Event</th>
+                    <th class="border border-gray-300 px-4 py-2">Log Description</th>
+                    <th class="border border-gray-300 px-4 py-2">Timestamp</th>
                     <th class="border border-gray-300 px-4 py-2">Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for metric in metrics %}
+                {% for log in logs %}
                 <tr class="hover:bg-gray-100">
-                    <td class="border border-gray-300 px-4 py-2">{{ metric.id }}</td>
-                    <td class="border border-gray-300 px-4 py-2">{{ metric.metric_name }}</td>
-                    <td class="border border-gray-300 px-4 py-2">{{ metric.value }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ log.id }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ log.event_type }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ log.description }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ log.timestamp }} </td>
                     <td class="border border-gray-300 px-4 py-2">
                         <a href="#" class="text-blue-500 hover:underline">View More</a>
                     </td>

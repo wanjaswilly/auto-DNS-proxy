@@ -26,7 +26,8 @@ def home():
             users=User.query.count(), 
             resources=Resources.query.count(), 
             logs=Logs.query.count(),
-            proxy=ProxySettings.query.count())
+            proxy=ProxySettings.query.count(),
+            metrics=Metrics.query.count())
         
     return render_template('login.html')
 
