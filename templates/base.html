@@ -5,29 +5,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block page_name %} Home {% endblock %} &middot; Auto DNS PROXY</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="{{url_for('static',filename='css/output.css')}}" rel="stylesheet">
 </head>
 
-<body>
-    <div class="h-screen w-64 bg-gray-900 text-white flex flex-col p-4">
-        <h2 class="text-xl font-bold mb-6">Auto DNS Proxy</h2>
+<body class="bg-gray-100 ">
+    <div class="items-center justify-center mx-auto  bg-gray-900 text-white flex flex-row p-4">
+        <h2 class="text-xl font-bold mx-4  mr-8">Auto DNS Proxy</h2>
 
-        <nav class="flex-1">
-            <ul class="space-y-4">
+        <nav class="flex flex-row">
+            <ul class="space-x-4 flex flex-row">
                 <li>
-                    <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Dashboard</a>
+                    <a href="{{url_for('home')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Dashboard</a>
                 </li>
                 <li>
-                    <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700">DNS Queries</a>
+                    <a href="{{url_for('resources')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Local DNS Queries</a>
                 </li>
                 <li>
-                    <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Proxy Settings</a>
+                    <a href="{{url_for('proxy')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Proxy Settings</a>
                 </li>
                 <li>
-                    <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Logs</a>
+                    <a href="{{url_for('logs')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Logs</a>
                 </li>
                 <li>
-                    <a href="#" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Users</a>
+                    <a href="{{url_for('users')}}" class="block px-4 py-2 rounded-lg hover:bg-gray-700">Users</a>
                 </li>
             </ul>
         </nav>
@@ -37,7 +38,7 @@
         </div>
     </div>
 
-    <div class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="flex items-center justify-center mt-8">
         {% block content %}{% endblock %}
     </div>
 </body>

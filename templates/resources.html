@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block page_name %}All Resources {% endblock %}
+
+{% block content %}
+<div class="p-6 bg-white shadow-md rounded-lg w-3/4">
+    <h2 class="text-xl font-semibold text-gray-800 my-8">All DNS Resources</h2>
+    
+    <table class="w-full border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border border-gray-300 px-4 py-2">ID</th>
+                <th class="border border-gray-300 px-4 py-2">Domain</th>
+                <th class="border border-gray-300 px-4 py-2">Type</th>
+                <th class="border border-gray-300 px-4 py-2">Answer</th>
+                <th class="border border-gray-300 px-4 py-2">Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for resource in resources %}
+            <tr class="hover:bg-gray-100">
+                <td class="border border-gray-300 px-4 py-2">{{ resource.id }}</td>
+                <td class="border border-gray-300 px-4 py-2">{{ resource.domain }}</td>
+                <td class="border border-gray-300 px-4 py-2">{{ resource.query_type }}</td>
+                <td class="border border-gray-300 px-4 py-2">{{ resource.answer_section[:50] }}...</td>
+                <td class="border border-gray-300 px-4 py-2">{{ resource.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block page_name %}Dashboard Home {% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md w-2/3">
+    <div class="p-6 bg-white shadow-md rounded-lg">
+        <h2 class="text-xl font-semibold text-gray-800 my-6">Dashboard</h2>
+
+        <div class="grid grid-cols-2 gap-4 mt-4">
+            <!-- Users Count -->
+            <a href="{{url_for('users')}}">
+                <div class="bg-blue-500 text-white p-4 rounded-lg text-center">
+                    <h3 class="text-lg font-semibold">Total Users</h3>
+                    <p class="text-2xl font-bold">{{ users_count }}</p>
+                </div>
+            </a>
+            <!-- Resources Count -->
+            <a href="{{url_for('resources')}}">
+                <div class="bg-green-500 text-white p-4 rounded-lg text-center">
+                    <h3 class="text-lg font-semibold">Total Resources</h3>
+                    <p class="text-2xl font-bold">{{ resources_count }}</p>
+                </div>
+            </a>
+            <a href="{{url_for('logs')}}">
+                <div class="bg-green-500 text-white p-4 rounded-lg text-center">
+                    <h3 class="text-lg font-semibold">All Logs</h3>
+                    <p class="text-2xl font-bold">{{ resources_count }}</p>
+                </div>
+            </a>
+            <a href="{{url_for('proxy')}}">
+                <div class="bg-green-500 text-white p-4 rounded-lg text-center">
+                    <h3 class="text-lg font-semibold">Proxy Settings</h3>
+                    <p class="text-2xl font-bold">{{ resources_count }}</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
